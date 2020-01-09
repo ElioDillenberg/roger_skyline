@@ -15,6 +15,7 @@ su edillenb (connect as user with sudo rights)
 
 # Change IP from DHCP generated to static
 ip addr (to get ip address) -> 10.12.1.106/16
+
 ip route | grep default (to get gateway address) -> 10.12.254.254
 
 sudo vim /etc/network/interfaces
@@ -44,21 +45,18 @@ sudo vim /etc/ssh/sshd_config
 sudo systemctl restart sshd
 
 # On your local machine, test to connect via ssh to the remote machine: 
-
 ssh edillenb@10.12.1.106 -p 51188
 
 # Now log off and the following is to do on your local machine to enable key auth.
-
 cd ~/.ssh
+
 ssh-copy-id -i id_rsa.pub edillenb@10.12.1.106 -p 51188
 
 # You should now be able to connect through ssh to this user account from your machine without the use of a password
 # You can test it:
-
 ssh edillenb@10.12.1.106 -p 51188
 
 # To disable root ssh login and password login:
-
 sudo vim /etc/ssh/sshd_config
 
     PermitRootLogin no
@@ -71,19 +69,21 @@ sudo vim /etc/ssh/sshd_config
 sudo systemctl restart sshd
 
 # Configure FireWall with UFW
-
 sudo ufw enable
 
 sudo ufw default allow outgoing
+
 sudo ufw default deny incoming
+
 sudo ufw default deny forward
 
 sudo ufw limit 51188 (ssh)
+
 sudo ufw allow 80 (http)
+
 sudo ufw allow 443 (https)
 
 # Setup DoS protection rules on ports 80 and 443 (ssh port is protected through it's "limit" rule, that would be too restrictive for http and https but ok for ssh)
-
 sudo /etc/ufw/before.rules
 
 right under the line "*filter", add:
@@ -118,5 +118,3 @@ before the line "COMMIT", add:
     ### end ###
  
  sudo ufw reload
- 
- 

@@ -6,7 +6,7 @@ Project done on a VM using Debian 10
 # Setup
 su (connect as root)
 
-sudo apt-get install -y vim sudo sendmail portsentry ufw fail2ban apache2
+sudo apt-get install -y vim sudo sendmail portsentry ufw apache2
 
 # Add sudo rights to user
 usermod -aG sudo edillenb
@@ -83,7 +83,9 @@ sudo ufw allow 80 (http)
 
 sudo ufw allow 443 (https)
 
-# Setup DoS protection rules on ports 80 and 443 (ssh port is protected through it's "limit" rule, that would be too restrictive for http and https but ok for ssh)
+source(https://linuxize.com/post/how-to-setup-a-firewall-with-ufw-on-debian-9/)
+
+# Setup DoS protection rules on ports 80 and 443 (ssh port is protected through it's "limit" rule, that would be too restrictive for http and https but ok for ssh) using ufw + IPtables
 sudo /etc/ufw/before.rules
 
 right under the line "*filter", add:
@@ -117,4 +119,38 @@ before the line "COMMIT", add:
     -A ufw-http-logdrop -j DROP
     ### end ###
  
- sudo ufw reload
+sudo ufw reload
+
+source (http://lepepe.github.io/sysadmin/2016/01/19/ubuntu-server-ufw.html and http://blog.lavoie.sl/2012/09/protect-webserver-against-dos-attacks.html)
+ 
+# Port scan protection using portsentry
+sudo systemctl stop portsentry
+ 
+sudo vim /etc/default/portsentrys
+ 
+        TCP_MODE="atcp"
+        UDP_MODE="audp"
+        
+sudo vim /etc/portsentry/portsentry.conf
+ 
+        BLOCK_UDP="1"
+        BLOCK_TCP="1"
+        
+Also, comment all lines starting with "KILL_ROUTE" besides the following (makes us use iptables for portscan                protection):
+
+        KILL_ROUTE="/sbin/iptables -I INPUT -s $TARGET$ -j DROP"
+        
+If you want the IP addresses that try to scan you, not to be banned, you can comment the following line:
+
+        KILL_HOSTS_DENY="ALL: $TARGET$ : DENY"
+        
+Otherwise, anyone who will try to scan you, will be banned through IPtables
+
+sudo systemctl start portsentry
+
+(source: https://fr-wiki.ikoula.com/fr/Se_prot%C3%A9ger_contre_le_scan_de_ports_avec_portsentry)
+
+# Stop the services you do not need
+sudo systemctl --full --type service --all | grep running  (to check all the running services)
+
+sudo systemctl stop/disable???? XXX (depending on the services you don't need)

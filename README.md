@@ -83,7 +83,7 @@ sudo ufw allow 80 (http)
 
 sudo ufw allow 443 (https)
 
-source(https://linuxize.com/post/how-to-setup-a-firewall-with-ufw-on-debian-9/)
+(source: https://linuxize.com/post/how-to-setup-a-firewall-with-ufw-on-debian-9/)
 
 # Setup DoS protection rules on ports 80 and 443 (ssh port is protected through it's "limit" rule, that would be too restrictive for http and https but ok for ssh) using ufw + IPtables
 sudo /etc/ufw/before.rules
@@ -121,7 +121,7 @@ before the line "COMMIT", add:
  
 sudo ufw reload
 
-source (http://lepepe.github.io/sysadmin/2016/01/19/ubuntu-server-ufw.html and http://blog.lavoie.sl/2012/09/protect-webserver-against-dos-attacks.html)
+(sources: http://lepepe.github.io/sysadmin/2016/01/19/ubuntu-server-ufw.html and http://blog.lavoie.sl/2012/09/protect-webserver-against-dos-attacks.html)
  
 # Port scan protection using portsentry
 sudo systemctl stop portsentry
@@ -161,6 +161,8 @@ sudo systemctl disable apt-daily-upragde.service
 
 sudo systemctl disable apt-daily.service
 
+(sources: just check every single active active service and figure out wether you need it or not)
+
 # Set up Crontab
 sudo vim /etc/cron.d/update_script.sh
 
@@ -169,11 +171,77 @@ sudo vim /etc/cron.d/update_script.sh
 
 sudo chmod 755 /etc/cron.d/update_script.sh
 
-sudo crontab -e
+sudo vim /etc/cron.d/cron_monitor.sh
 
-        SHELL=/bin/bash
-        PATH=/sbin:/bin:/usr/sbin:/usr/bin
+        #!/bin/bash
+        DIFF=$(diff /etc/crontab /etc/cron.d/tmp_cron.log)
+        if [ "$DIFF" != "" ]; then
+            sudo sendmail root < /etc/cron.d/cron_monitor_mail.txt
+            sudo cp /etc/crontab /etc/cron.d/tmp_cron.log
+        fi
+        
+sudo chmod 755 /etc/cron.d/cron_monitor.sh
 
-        @reboot sudo /etc/cron.d/update_script.sh
-        0 4 * * 6 sudo /etc/cron.d/update_script.sh
- 
+sudo vim /etc/cron.d/cron_monitor_mail.txt
+
+        Crontab has been modified!
+
+sudo vim /etc/cron.d/tmp_cron.log
+
+sudo chmod 755 /etc/cron.d/tmp_cron.log
+
+sudo touch /var/mail/root
+
+sudo vim /etc/aliases
+    
+    root:root
+    
+sudo vim /etc/crontab
+
+        @reboot         root    sudo /etc/cron.d/update_script.sh
+        0  4    * * 6   root    sudo /etc/cron.d/update_script.sh
+        0  0    * * *   root    sudo /etc/cron.d/cron_monitor.sh
+
+(source: https://help.dreamhost.com/hc/en-us/articles/215767047-Creating-a-custom-Cron-Job)
+# Web Part (Optional)
+Just copy your web app inside the folder : /var/www/html
+
+# Configuration of the SSL Certificate
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/apache-selfsigned.key -out /etc/ssl/certs/apache-selfsigned.crt
+
+Just make sure to type in your IP address when prompted for "Common Name"
+
+sudo cp /etc/apache2/sites-available/default-ssl.conf /etc/apache2/sites-available/default-ssl.conf.bak (backing up the original default-ssl.conf file just to be safe)
+
+sudo vim /etc/apache2/sites-available/default-ssl.conf
+
+        ServerAdmin edillenb@hostname (your email)
+        ServerName 10.12.1.106 (your IP address)
+
+        SSLCertificateFile      /etc/ssl/certs/apache-selfsigned.crt
+        SSLCertificateKeyFile /etc/ssl/private/apache-selfsigned.key
+        
+Now redirecting all HTTP traffic to safer HTTPS
+
+sudo vim /etc/apache2/sites-available/000-default.conf
+
+        # Redirecting all traffic to SSL version of the site
+        Redirect permanent "/" "https://10.12.1.106/"
+        
+(make sure that the above has been pasted between the <VirtualHost> tags, the IP address should be your IP address ofc)
+
+sudo a2enmod ssl
+
+sudo a2enmod headers
+
+sudo a2ensite default-ssl
+
+You can now test if everything was done properly:
+
+sudo apache2ctl configtest
+
+sudo systemctl restart apache2
+
+All set!
+
+(source : https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl-certificate-for-apache-in-debian-10 )

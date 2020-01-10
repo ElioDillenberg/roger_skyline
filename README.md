@@ -151,6 +151,29 @@ sudo systemctl start portsentry
 (source: https://fr-wiki.ikoula.com/fr/Se_prot%C3%A9ger_contre_le_scan_de_ports_avec_portsentry)
 
 # Stop the services you do not need
-sudo systemctl --full --type service --all | grep running  (to check all the running services)
+sudo systemctl list-unit-files  (to check all the running services)
 
-sudo systemctl stop/disable???? XXX (depending on the services you don't need)
+sudo systemctl disable rsyslog.service
+
+sudo systemctl disable logrotate.timer
+
+sudo systemctl disable apt-daily-upragde.service
+
+sudo systemctl disable apt-daily.service
+
+# Set up Crontab
+sudo vim /etc/cron.d/update_script.sh
+
+        sudo apt-get update -y >> /var/log/update_script.log
+        sudo apt-get upgrade -y >> /var/log/update_script.log
+
+sudo chmod 755 /etc/cron.d/update_script.sh
+
+sudo crontab -e
+
+        SHELL=/bin/bash
+        PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
+        @reboot sudo /etc/cron.d/update_script.sh
+        0 4 * * 6 sudo /etc/cron.d/update_script.sh
+ 

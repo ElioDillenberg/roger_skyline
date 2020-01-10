@@ -139,14 +139,18 @@ sudo vim /etc/portsentry/portsentry.conf
 Also, comment all lines starting with "KILL_ROUTE" besides the following (makes us use iptables for portscan                protection):
 
         KILL_ROUTE="/sbin/iptables -I INPUT -s $TARGET$ -j DROP"
-        
-If you want the IP addresses that try to scan you, not to be banned, you can comment the following line:
-
-        KILL_HOSTS_DENY="ALL: $TARGET$ : DENY"
-        
-Otherwise, anyone who will try to scan you, will be banned through IPtables
 
 sudo systemctl start portsentry
+
+You can check for banned IPs using the following command:
+
+sudo iptables -L INPUT -v -n | less
+
+If you accidentaly ban your own IP by mistake, don't panick, here is how to fix it:
+
+sudo iptables -D INPUT -s X.X.X.X -j DROP
+
+--> replace X.X.X.X with the IP address you whish to unban
 
 (source: https://fr-wiki.ikoula.com/fr/Se_prot%C3%A9ger_contre_le_scan_de_ports_avec_portsentry)
 

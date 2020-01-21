@@ -8,7 +8,7 @@ Create a partition of 4.501 GiB for the partition part
 # Setup
 su (connect as root)
 
-sudo apt-get install -y vim sudo sendmail portsentry ufw apache2
+sudo apt-get install -y vim sudo sendmail portsentry apache2
 
 # Add sudo rights to user
 usermod -aG sudo edillenb
@@ -142,7 +142,13 @@ Also, comment all lines starting with "KILL_ROUTE" besides the following (makes 
 
         KILL_ROUTE="/sbin/iptables -I INPUT -s $TARGET$ -j DROP"
 
+Make sure the following line is also not commented:
+
+        KILL_HOSTS_DENY="ALL: $TARGET$ : DENY"
+
 sudo systemctl start portsentry
+
+sudo systemctl enable portsentry
 
 You can check for banned IPs using the following command:
 
@@ -152,8 +158,6 @@ If you accidentaly ban your own IP by mistake, don't panick, here is how to fix 
 
 sudo iptables -D INPUT -s X.X.X.X -j DROP
 
-
-
 --> replace X.X.X.X with the IP address you whish to unban
 
 (source: https://fr-wiki.ikoula.com/fr/Se_prot%C3%A9ger_contre_le_scan_de_ports_avec_portsentry)
@@ -162,11 +166,8 @@ sudo iptables -D INPUT -s X.X.X.X -j DROP
 sudo systemctl list-unit-files  (to check all the running services)
 
 sudo systemctl disable rsyslog.service
-
 sudo systemctl disable logrotate.timer
-
 sudo systemctl disable apt-daily-upragde.service
-
 sudo systemctl disable apt-daily.service
 
 (sources: just check every single active active service and figure out wether you need it or not)

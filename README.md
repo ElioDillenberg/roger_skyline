@@ -3,6 +3,8 @@ Admin Sys Project for school 42
 
 Project done on a VM using Debian 10
 
+Create a partition of 4.501 GiB for the partition part
+
 # Setup
 su (connect as root)
 
@@ -150,6 +152,8 @@ If you accidentaly ban your own IP by mistake, don't panick, here is how to fix 
 
 sudo iptables -D INPUT -s X.X.X.X -j DROP
 
+
+
 --> replace X.X.X.X with the IP address you whish to unban
 
 (source: https://fr-wiki.ikoula.com/fr/Se_prot%C3%A9ger_contre_le_scan_de_ports_avec_portsentry)
@@ -249,3 +253,129 @@ sudo systemctl restart apache2
 All set!
 
 (source : https://www.digitalocean.com/community/tutorials/how-to-create-a-self-signed-ssl-certificate-for-apache-in-debian-10 )
+
+
+
+
+# Alternative for DoS attacks:
+
+        #!/bin/bash
+
+        #This script generates all the iptables rules we need to
+
+        #
+        # Flush all iptables (ipv4)
+        sudo iptables -F
+        sudo iptables -X
+        sudo iptables -t nat -F
+        sudo iptables -t nat -X
+        sudo iptables -t mangle -F
+        sudo iptables -t mangle -X
+        sudo iptables -P INPUT ACCEPT
+        sudo iptables -P FORWARD ACCEPT
+        sudo iptables -P OUTPUT ACCEPT
+        # Flush all iptables (ipv6)
+        sudo ip6tables -F
+        sudo ip6tables -X
+        sudo ip6tables -t nat -F
+        sudo ip6tables -t nat -X
+        sudo ip6tables -t mangle -F
+        sudo ip6tables -t mangle -X
+        sudo ip6tables -P INPUT ACCEPT
+        sudo ip6tables -P FORWARD ACCEPT
+        sudo ip6tables -P OUTPUT ACCEPT
+        ## IPV4
+
+        #
+        ### Set policies
+        sudo iptables -P INPUT DROP
+        sudo iptables -P OUTPUT DROP
+        sudo iptables -P FORWARD DROP
+        sudo ip6tables -P INPUT DROP
+        sudo ip6tables -P OUTPUT DROP
+        sudo ip6tables -P FORWARD DROP
+
+        ### Alow established connections
+        sudo iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+        sudo iptables -A OUTPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+        # Allow Loopback
+        sudo iptables -t filter -A INPUT -i lo -j ACCEPT
+        sudo iptables -t filter -A OUTPUT -o lo -j ACCEPT
+
+        ## Open all port needed (in this case ssh is listening on 51188)
+        sudo iptables -t filter -A INPUT -p tcp -m tcp --dport 51188 -j ACCEPT
+        sudo iptables -t filter -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT
+        sudo iptables -t filter -A INPUT -p tcp -m tcp --dport 443 -j ACCEPT
+
+        ##
+        #### DOS RULES
+        ##
+
+        ### 1: Drop invalid packets ###
+        sudo iptables -t mangle -A PREROUTING -m conntrack --ctstate INVALID -j DROP
+        #
+        #### 2: Drop TCP packets that are new and are not SYN ###
+        sudo iptables -t mangle -A PREROUTING -p tcp ! --syn -m conntrack --ctstate NEW -j DROP
+        #
+        #### 3: Drop SYN packets with suspicious MSS value ###
+        sudo iptables -t mangle -A PREROUTING -p tcp -m conntrack --ctstate NEW -m tcpmss ! --mss 536:65535 -j DROP
+        #
+        #### 4: Block packets with bogus TCP flags ###
+        sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG NONE -j DROP
+        sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags FIN,SYN FIN,SYN -j DROP
+        sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags SYN,RST SYN,RST -j DROP
+        sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags FIN,RST FIN,RST -j DROP
+        sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags FIN,ACK FIN -j DROP
+        sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ACK,URG URG -j DROP
+        sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ACK,FIN FIN -j DROP
+        sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ACK,PSH PSH -j DROP
+        sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ALL ALL -j DROP
+        sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ALL NONE -j DROP
+        sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ALL FIN,PSH,URG -j DROP
+        sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ALL SYN,FIN,PSH,URG -j DROP
+        sudo iptables -t mangle -A PREROUTING -p tcp --tcp-flags ALL SYN,RST,ACK,FIN,URG -j DROP
+        #
+        #### 5: Block spoofed packets ###
+        sudo iptables -t mangle -A PREROUTING -s 224.0.0.0/3 -j DROP
+        sudo iptables -t mangle -A PREROUTING -s 169.254.0.0/16 -j DROP
+        sudo iptables -t mangle -A PREROUTING -s 172.16.0.0/12 -j DROP
+        sudo iptables -t mangle -A PREROUTING -s 192.0.2.0/24 -j DROP
+        sudo iptables -t mangle -A PREROUTING -s 192.168.0.0/16 -j DROP
+        sudo iptables -t mangle -A PREROUTING -s 0.0.0.0/8 -j DROP
+        sudo iptables -t mangle -A PREROUTING -s 240.0.0.0/5 -j DROP
+        sudo iptables -t mangle -A PREROUTING -s 127.0.0.0/8 ! -i lo -j DROP
+        #
+        #### 6: Drop ICMP (you usually don't need this protocol) ###
+        sudo iptables -t mangle -A PREROUTING -p icmp -j DROP
+        #
+        #### 7: Drop fragments in all chains ###
+        #sudo iptables -t mangle -A PREROUTING -m frag -j DROP
+        #
+        #### 8: Limit connections per source IP ###
+        sudo iptables -A INPUT -p tcp -m connlimit --connlimit-above 111 -j REJECT --reject-with tcp-reset
+        #
+        #### 9: Limit RST packets ###
+        sudo iptables -A INPUT -p tcp --tcp-flags RST RST -m limit --limit 2/s --limit-burst 2 -j ACCEPT
+        sudo iptables -A INPUT -p tcp --tcp-flags RST RST -j DROP
+        #
+        #### 10: Limit new TCP connections per second per source IP ###
+        sudo iptables -A INPUT -p tcp -m conntrack --ctstate NEW -m limit --limit 60/s --limit-burst 20 -j ACCEPT
+        sudo iptables -A INPUT -p tcp -m conntrack --ctstate NEW -j DROP
+        #
+        #### END OF DOS RULES
+        #
+
+        #### SSH brute-force protection
+        sudo iptables -A INPUT -p tcp --dport 51188 -m conntrack --ctstate NEW -m recent --set
+        sudo iptables -A INPUT -p tcp --dport 51188 -m conntrack --ctstate NEW -m recent --update --seconds 60 --hitcount 10 -j DROP
+        # APPLY RULES
+
+        sudo iptables-save > /etc/iptables/rules.v4
+        sudo ip6tables-save > /etc/iptables/rules.v6
+
+        # Restart Netfilter-Persistent service
+        sudo systemctl restart netfilter-persistent
+        
+        
+Run this script, DOS protected!

@@ -166,8 +166,23 @@ sudo iptables -D INPUT -s X.X.X.X -j DROP
 sudo systemctl list-unit-files  (to check all the running services)
 
 sudo systemctl disable rsyslog.service
+
 sudo systemctl disable logrotate.timer
+
+sudo systemctl stop apt-daily-upgrade.service
+
 sudo systemctl disable apt-daily-upragde.service
+
+sudo systemctl stop apt-daily-upgrade.timer
+
+sudo systemctl disable apt-daily-upragde.timer
+
+sudo systemctl stop apt-daily.timer
+
+sudo systemctl disable apt-daily.timer
+
+sudo systemctl stop apt-daily.service
+
 sudo systemctl disable apt-daily.service
 
 (sources: just check every single active active service and figure out wether you need it or not)

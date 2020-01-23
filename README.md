@@ -299,7 +299,7 @@ sudo vim /etc/aliases
     
     root:root
     
-sudo vim /etc/crontab
+sudo crontab -e
 
         @reboot         root    sudo /etc/cron.d/update_script.sh
         0  4    * * 6   root    sudo /etc/cron.d/update_script.sh

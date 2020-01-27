@@ -250,11 +250,11 @@ The services here under are the ones you rly need to get rid off, because otherw
 
 sudo systemctl stop apt-daily-upgrade.service
 
-sudo systemctl disable apt-daily-upragde.service
+sudo systemctl disable apt-daily-upgrade.service
 
 sudo systemctl stop apt-daily-upgrade.timer
 
-sudo systemctl disable apt-daily-upragde.timer
+sudo systemctl disable apt-daily-upgrade.timer
 
 sudo systemctl stop apt-daily.timer
 

@@ -269,8 +269,8 @@ sudo systemctl disable apt-daily.service
 # Set up Crontab
 sudo vim /etc/cron.d/update_script.sh
 
-        sudo apt-get update -y >> /var/log/update_script.log
-        sudo apt-get upgrade -y >> /var/log/update_script.log
+        echo "sudo apt-get update -y >> /var/log/update_script.log" >> /etc/cron.d/update_script.sh
+        echo "sudo apt-get upgrade -y >> /var/log/update_script.log" >> /etc/cron.d/update_script.sh
 
 sudo chmod 755 /etc/cron.d/update_script.sh
 
